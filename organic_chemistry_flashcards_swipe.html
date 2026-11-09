@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6fb">
+<title>有機化学 単語カード</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#172033;background:#f4f6fb}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}
+main{max-width:620px;margin:auto;padding:20px 16px 32px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:1.25rem;margin:8px 0} .muted{color:#687386;font-size:.9rem}
+.progress{height:6px;background:#dfe4ee;border-radius:9px;overflow:hidden;margin:16px 0}
+#bar{height:100%;width:0;background:#4263eb;transition:width .2s}
+.card{width:100%;min-height:290px;border:1px solid #d8deea;border-radius:24px;background:white;box-shadow:0 8px 24px #1720330c;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;cursor:pointer}
+.label{font-size:.85rem;color:#687386;margin-bottom:18px}
+#face{font-size:1.5rem;font-weight:700;overflow-wrap:anywhere}
+.card{touch-action:pan-y;user-select:none;-webkit-user-select:none;transition:transform .16s ease,border-color .16s ease}
+.card.swipe-right{transform:translateX(12px) rotate(2deg);border-color:#36a269}
+.card.swipe-left{transform:translateX(-12px) rotate(-2deg);border-color:#e07a4f}
+#hint{margin-top:22px;color:#687386;font-size:.9rem}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+button,select{font:inherit;border:1px solid #cbd3e2;border-radius:14px;padding:13px;background:white;color:#172033}
+button.primary{background:#243b80;color:white;border-color:#243b80}
+button:active{transform:scale(.99)}
+.ratings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.known{background:#e5f7eb;border-color:#9dd9af}.missed{background:#fff0e8;border-color:#efb99d}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select{flex:1;min-width:0}
+footer{margin-top:18px;font-size:.82rem;color:#687386;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="muted">大学受験・暗記用</div><h1>有機化学 単語カード</h1></div><div class="muted" id="count">1 / 30</div></header>
+<div class="row"><select id="category" aria-label="分野">
+<option value="all">すべての分野</option><option value="芳香族">芳香族化合物</option><option value="炭化水素">炭化水素</option><option value="アルコール・エーテル">アルコール・エーテル</option><option value="カルボニル・カルボン酸">アルデヒド・ケトン・カルボン酸</option><option value="その他">エステル・アミノ酸</option>
+</select><button id="shuffle">シャッフル</button><button id="mistakes">間違えたカードだけ</button></div>
+<div id="mistakeSummary" class="muted" style="margin-top:8px"></div>
+<div class="progress"><div id="bar"></div></div>
+<div class="card" id="card" role="button" tabindex="0" aria-label="タップして答えを表示。右にスワイプで覚えた、左にスワイプで覚えていない">
+<div class="label" id="side">物質名</div><div id="face">ベンゼン</div><div id="hint">タップして構造式を表示</div>
+</div>
+<div class="controls"><button id="prev">← 前へ</button><button class="primary" id="flip">答えを見る</button><button id="next" class="primary">次へ →</button><button id="reverse">構造式 → 物質名</button></div>
+<div class="ratings"><button class="known" id="know">✓ 覚えた</button><button class="missed" id="again">× もう一度</button></div>
+<div class="row" style="justify-content:space-between;margin-top:14px"><span class="muted" id="stats">覚えた 0 / 30</span><button id="reset">記録をリセット</button></div>
+<footer>タップで答えを表示。右にスワイプ＝覚えた、左にスワイプ＝もう一度。学習記録はこのブラウザに保存されます。</footer>
+</main>
+<script>
+const all = [
+["ベンゼン","⌬","芳香族"],["トルエン","⌬−CH₃","芳香族"],["フェノール","⌬−OH","芳香族"],["安息香酸","⌬−COOH","芳香族"],["アニリン","⌬−NH₂","芳香族"],["スチレン","⌬−CH=CH₂","芳香族"],["クロロベンゼン","⌬−Cl","芳香族"],["ニトロベンゼン","⌬−NO₂","芳香族"],["ベンジルアルコール","⌬−CH₂OH","芳香族"],["アニソール","⌬−O−CH₃","芳香族"],
+["メタン","CH₄","炭化水素"],["エタン","CH₃−CH₃","炭化水素"],["プロパン","CH₃−CH₂−CH₃","炭化水素"],["2-メチルプロパン","CH₃−CH(CH₃)−CH₃","炭化水素"],["エチレン（エテン）","CH₂=CH₂","炭化水素"],["アセチレン（エチン）","HC≡CH","炭化水素"],
+["メタノール","CH₃−OH","アルコール・エーテル"],["エタノール","CH₃−CH₂−OH","アルコール・エーテル"],["エチレングリコール","HO−CH₂−CH₂−OH","アルコール・エーテル"],["グリセリン","HO−CH₂−CH(OH)−CH₂−OH","アルコール・エーテル"],["ジエチルエーテル","CH₃−CH₂−O−CH₂−CH₃","アルコール・エーテル"],
+["ホルムアルデヒド","H−CHO","カルボニル・カルボン酸"],["アセトアルデヒド","CH₃−CHO","カルボニル・カルボン酸"],["アセトン","CH₃−CO−CH₃","カルボニル・カルボン酸"],["ギ酸","H−COOH","カルボニル・カルボン酸"],["酢酸","CH₃−COOH","カルボニル・カルボン酸"],["シュウ酸","HOOC−COOH","カルボニル・カルボン酸"],
+["マレイン酸","cis-HOOC−CH=CH−COOH（2つのCOOHが同じ側）","カルボニル・カルボン酸"],
+["フマル酸","trans-HOOC−CH=CH−COOH（2つのCOOHが反対側）","カルボニル・カルボン酸"],
+["酢酸メチル","CH₃−COO−CH₃","その他"],["酢酸エチル","CH₃−COO−CH₂−CH₃","その他"],["グリシン","H₂N−CH₂−COOH","その他"]
+];
+let deck=[...all], idx=0, flipped=false, reverse=false, mistakesOnly=false;
+let history=JSON.parse(localStorage.getItem("organic-card-history")||"{}");
+const $=id=>document.getElementById(id);
+function render(){
+ $("mistakes").textContent=mistakesOnly?"すべてのカードに戻る":"間違えたカードだけ";
+ const missedNames=all.filter(c=>history[c[0]]==="missed").map(c=>c[0]);
+ $("mistakeSummary").textContent=missedNames.length
+   ? `これまでに「もう一度」にしたカード：${missedNames.length}枚（${missedNames.join("、")}）`
+   : "記録された間違いはまだありません。「× もう一度」を押すと、ここにまとまります。";
+ if(!deck.length){
+   $("count").textContent="0 / 0"; $("bar").style.width="0%";
+   $("side").textContent="該当カードなし"; $("face").textContent="間違えたカードはありません";
+   $("hint").textContent="「すべてのカードに戻る」を押してください";
+   $("stats").textContent=`覚えた ${Object.values(history).filter(v=>v==="known").length} / ${all.length}`;
+   return;
+ }
+ const c=deck[idx]; $("count").textContent=`${idx+1} / ${deck.length}`;
+ $("bar").style.width=`${(idx+1)/deck.length*100}%`;
+ $("side").textContent=flipped?(reverse?"物質名":"構造式"):(reverse?"構造式":"物質名");
+ $("face").textContent=flipped?(reverse?c[0]:c[1]):(reverse?c[1]:c[0]);
+ $("hint").textContent=flipped?"タップで問題に戻る":"タップして答えを表示";
+ $("flip").textContent=flipped?"問題に戻る":"答えを見る";
+ const known=Object.values(history).filter(v=>v==="known").length;
+ $("stats").textContent=`覚えた ${known} / ${all.length}`;
+}
+function flip(){flipped=!flipped;render()}
+function move(n){if(!deck.length)return;idx=(idx+n+deck.length)%deck.length;flipped=false;render()}
+function rateCard(outcome){
+ if(!deck.length)return;
+ history[deck[idx][0]]=outcome;
+ localStorage.setItem("organic-card-history",JSON.stringify(history));
+ if(mistakesOnly)rebuildDeck();
+ else move(1);
+}
+let swipeStart=null, suppressClick=false;
+$("card").addEventListener("pointerdown",e=>{
+ if(e.pointerType==="mouse" && e.button!==0)return;
+ swipeStart={x:e.clientX,y:e.clientY};
+});
+$("card").addEventListener("pointerup",e=>{
+ if(!swipeStart)return;
+ const dx=e.clientX-swipeStart.x, dy=e.clientY-swipeStart.y;
+ swipeStart=null;
+ if(Math.abs(dx)>65 && Math.abs(dx)>Math.abs(dy)*1.25){
+   suppressClick=true;
+   const card=$("card");
+   card.classList.remove("swipe-left","swipe-right");
+   card.classList.add(dx>0?"swipe-right":"swipe-left");
+   setTimeout(()=>card.classList.remove("swipe-left","swipe-right"),180);
+   rateCard(dx>0?"known":"missed");
+   setTimeout(()=>{suppressClick=false},250);
+ }
+});
+$("card").addEventListener("pointercancel",()=>{swipeStart=null});
+$("card").onclick=()=>{if(suppressClick){suppressClick=false;return}flip()};
+$("card").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flip()}};
+$("flip").onclick=flip;$("prev").onclick=()=>move(-1);$("next").onclick=()=>move(1);
+$("reverse").onclick=()=>{reverse=!reverse;flipped=false;render()};
+$("know").onclick=()=>rateCard("known");
+$("again").onclick=()=>rateCard("missed");
+function rebuildDeck(){
+ const v=$("category").value;
+ const base=v==="all"?[...all]:all.filter(c=>c[2]===v);
+ deck=mistakesOnly?base.filter(c=>history[c[0]]==="missed"):base;
+ idx=0;flipped=false;render();
+}
+$("category").onchange=rebuildDeck;
+$("mistakes").onclick=()=>{mistakesOnly=!mistakesOnly;rebuildDeck()};
+$("shuffle").onclick=()=>{for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}idx=0;flipped=false;render()};
+$("reset").onclick=()=>{if(confirm("学習記録をすべてリセットしますか？")){history={};localStorage.removeItem("organic-card-history");rebuildDeck()}};
+render();
+</script>
+</body></html>
